@@ -15,3 +15,9 @@ Common Analyses for Natural History Studies in Ataxias - Need to merge in R.FRDA
 **2) year-to-year change predictability.R**
 
 -   not cleaned
+
+**3) year1 change classification.R**
+
+-   computes mean change from baseline by study, visit, and group
+
+-   plots trajectories stratified by year-1 classification: improved/stable/decline.
