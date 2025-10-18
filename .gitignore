@@ -47,3 +47,5 @@ DATA derived/
 RESULTS*/
 outputs.*/
 .code.legacy/
+*.pptx
+.claude/
