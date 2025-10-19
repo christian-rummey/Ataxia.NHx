@@ -1,7 +1,7 @@
 
 # intro -------------------------------------------------------------------
 
-source('.project.settings.R')
+source('.settings.R')
 library(broom.mixed)
 library(purrr)
 library(lme4)

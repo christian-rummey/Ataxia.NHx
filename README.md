@@ -1,68 +1,192 @@
-
-# use .Rprofile in 
-# C:\Users\ChristianRummey\OneDrive - CDS\Documents
-
-
 # Ataxia.NHx
 
-Common Analyses for Natural History Studies in Ataxias - Need to merge in R.FRDA.NH
+Common Analyses for Natural History Studies in Ataxias
 
-## PSM Matching: Analyses that provide Context
+## Project Structure
 
-**1) year-to-year change predictability.R**
+```
+R.Ataxia.NHx/
+├── lib/                    # Shared functions
+│   ├── data-prep.R        # load_ataxia_data()
+│   ├── models.R           # fit_cfb_model(), fit_slope_model()
+│   ├── plotting.R         # Plotting functions
+│   └── powerpoint.R       # PowerPoint export
+├── config/
+│   └── parameters.R       # Parameter ranges, labels, metadata
+├── .settings.R            # Project settings (loads all lib/ and config/)
+└── [analysis scripts]     # Individual analysis scripts
+```
 
--   computes adjacent 1-year annualized changes (prior year vs. subsequent year).
+## Quick Start
 
--   fits regressions to check if prior-year change predicts subsequent-year change.
+All scripts follow the same 5-step pattern:
 
--   stats (slope, R², correlation, p) + scatterplots with identity line and LM fit. -\> year-to-year change is noisy, slopes near zero → regression-to-the-mean dominates.
+```r
+source('.settings.R')  # Loads all libraries and functions
 
-**2) year-to-year change predictability.R**
+# 1. SETTINGS
+studies <- c('UNIFAI')
+parameters <- c('mFARS', 'USS')
+baseline_filters <- list(mFARS = ">= 20")
 
--   not cleaned
+# 2. LOAD DATA
+data_list <- load_ataxia_data(...)
 
-**3) year1 change classification.R**
+# 3. CALCULATE MODELS
+model_predictions <- fit_cfb_model(...)
 
--   computes mean change from baseline by study, visit, and group
+# 4. PLOT
+p <- plot_cfb_by_group(...)
 
--   plots trajectories stratified by year-1 classification: improved/stable/decline.
+# 5. SAVE
+save_plot_to_ppt(...)
+```
 
-## Change from Baseline Analyses
+## 5-Year Analyses
 
-**4) 5y-Change from Baseline by Age Group.R**
+### Change from Baseline
 
--   Fits MMRM (mixed model for repeated measures) with baseline as covariate
+**5y-Change from Baseline by Age Group.R**
+- Study: UNIFAI
+- Parameters: mFARS, USS
+- Groups: Age groups (<8y, 8-11y, 12-15y, 16-24y, 25-40y, >40y)
+- Model: MMRM `aval ~ bl + age_grp * factor(avisitn) + (1 | sjid)`
+- Optional slope model: `aval ~ bl + age_grp * tm. + (1 + tm. | sjid)` (toggle `show_slopes`)
+- Baseline filters: fane7 < 5, mFARS >= 20
 
--   Models:
-    - Per age group: `aval ~ bl + age_grp * factor(avisitn) + (1 | sjid)`
-    - Overall "all": `aval ~ bl + factor(avisitn) + (1 | sjid)` (no group stratification)
+**5y-Change from Baseline by Study.R**
+- Studies: CRCSCA, EUROSCA
+- Parameters: SARA, SARA.ap
+- Groups: Study comparison
+- Model: MMRM `aval ~ bl + study * factor(avisitn) + (1 | sjid)`
+- Optional slope model (toggle `show_slopes`)
+- Baseline filter: SARA >= 3
 
--   Extracts estimated marginal means (emmeans) for each age group at each visit
+### Sample Size
 
--   Optional "all" group representing overall population estimate (toggle: `include_all_group`)
+**5y-Sample Size by Age Group.R**
+- Study: UNIFAI
+- Parameters: mFARS, USS
+- Two plots: all ages combined, by age group
+- Baseline filters: fane7 < 5, mFARS >= 20
 
--   Plots discrete visit-based change from baseline with error bars
+**5y-Sample Size by Study.R**
+- Studies: CRCSCA, EUROSCA, UNIFAI (configurable)
+- Parameters: SARA, SARA.ax
+- Two plots: all studies combined, by study
+- Baseline filter: SARA >= 3
 
--   Outputs combined plots (patchwork) with fixed y-axis limits per parameter
+## Exploratory Analyses
 
--   Color palette: black for "all", distinct colors for age groups
+**year-to-year change predictability.R**
+- Adjacent 1-year changes: does prior year predict subsequent year?
+- Result: noisy, regression-to-mean dominates
 
-**5) 5y-Change from Baseline by Age Group with Slopes.R**
+**year-to-year change predictability (longer intervals).R**
+- Extended version for longer time intervals
 
--   Extends script #4 by adding slope model overlay
+**year1_change_classification.R**
+- Trajectories stratified by year-1 response (improved/stable/decline)
 
--   Slope models with random intercepts AND slopes:
-    - Per age group: `aval ~ bl + age_grp * tm. + (1 + tm. | sjid)`
-    - Overall "all": `aval ~ bl + tm. + (1 + tm. | sjid)` (no group stratification)
+**change by baseline value.R**
+- How baseline severity affects change (mean change by baseline groups)
 
--   Uses continuous time (`tm.` in years) instead of discrete visits
+**change by baseline value (slope model).R**
+- Slope model version with random intercepts and slopes
 
--   Overlays smooth slope lines (semi-transparent) on top of discrete visit estimates
+## Other Analyses
 
--   Shows both model-based trajectories (slopes) and visit-specific estimates (points + error bars)
+**PMA 2025.R**
+- Special analysis for PMA conference
 
--   Useful for visualizing overall trends vs. discrete measurement points
+**Scales administered by sites-regions.R**
+- Cross-sectional view of scale availability by site/region
 
--   Settings controlled in "1. PREPARE DATA" section:
-    - `include_all_group`: Toggle to include/exclude "all" group
-    - `limits.mFARS`, `limits.USS`: Fixed y-axis limits per parameter
+**conmeds.omav.timeline.R**
+- Timeline of omaveloxolone treatment uptake
+- Summary statistics by drug type
+
+**conmeds.omav.exposure.R**
+- Omaveloxolone exposure analysis
+
+## Shared Functions Reference
+
+### Data Loading
+
+```r
+data_list <- load_ataxia_data(
+  studies = c('UNIFAI'),
+  parameters = c('mFARS', 'USS'),
+  baseline_filters = list(mFARS = ">= 20", fane7 = "< 5"),
+  age_groups = c('<8y', '8-11y', '12-15y', '16-24y', '25-40y', '>40y'),
+  time_limit = 6,
+  integer_visits = TRUE,
+  min_visits = 2
+)
+# Returns: list(dt = longitudinal data, dm = baseline demographics)
+```
+
+### Statistical Models
+
+```r
+# Change from baseline (discrete visits)
+model_predictions <- fit_cfb_model(
+  data = dt_model,
+  group_var = "age_grp",  # or "study"
+  include_all = TRUE      # Include "all" group
+)
+
+# Slope model (continuous time)
+slope_predictions <- fit_slope_model(
+  data = dt_model,
+  group_var = "age_grp",
+  include_all = TRUE
+)
+```
+
+### Plotting
+
+```r
+p <- plot_cfb_by_group(
+  model_predictions = model_predictions,
+  group_var = "age_grp",
+  colors = .colors.age_group,       # or .colors.study
+  y_limits_list = list(mFARS = c(0, 20)),
+  x_limits = c(0, 5),
+  slope_predictions = slope_predictions  # optional
+)
+```
+
+### PowerPoint Export
+
+```r
+save_plot_to_ppt(
+  plot_obj = p,
+  title = "My Analysis",
+  layout = "1s",  # or "TTE"
+  i = 2           # body placeholder index
+)
+```
+
+## Configuration
+
+### Color Palettes
+
+Defined in `.settings.R`:
+- `.colors.age_group` - Age group colors
+- `.colors.study` - Study colors (CRCSCA, EUROSCA, UNIFAI)
+
+### Parameter Metadata
+
+Defined in `config/parameters.R`:
+- `.param_ranges` - Y-axis ranges for each parameter
+- `.param_labels` - Display labels
+- Helper: `get_param_range('mFARS')` returns `c(0, 20)`
+
+## Notes
+
+- All scripts use `.Rprofile` to load common packages (dplyr, ggplot2, tidyverse, etc.)
+- Demographics automatically combined from both `demo.l` and `demo.sca`
+- Age groups always created (cut at 8, 12, 16, 25, 40 years)
+- Standard filters: time < 6 years, minimum 2 visits
+- All PowerPoint outputs named after source script

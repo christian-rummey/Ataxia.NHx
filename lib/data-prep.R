@@ -19,7 +19,6 @@
 #
 load_ataxia_data <- function(studies,
                               parameters,
-                              demo_source = 'demo.l',
                               baseline_filters = NULL,
                               age_groups = NULL,
                               time_limit = 6,
@@ -47,11 +46,15 @@ load_ataxia_data <- function(studies,
     filter(paramcd %in% parameters) %>%
     filter(study %in% studies)
 
-  # Join demographics
+  # Join demographics - combine both sources to support all studies
+  demo_combined <- bind_rows(
+    .dd('demo.l') %>% select(study, sjid, age_bl),
+    .dd('demo.sca') %>% select(study, sjid, age_bl)
+  ) %>%
+    distinct(study, sjid, .keep_all = TRUE)
+
   dt. <- dt. %>%
-    left_join(
-      .dd(demo_source) %>% select(study, sjid, age_bl)
-    ) %>%
+    left_join(demo_combined) %>%
     select(-stdy)
 
   cat("  Loaded", n_distinct(dt.$sjid), "subjects\n")
